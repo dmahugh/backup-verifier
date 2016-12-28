@@ -1,5 +1,8 @@
-"""drivediff.py
-ARCHIVED - THIS WORK WAS MOVED TO backup-drive-verifier on 12/28/2016
+"""bvtools.py
+Tools for backup verification.
+
+These utilities are used to analyze a set of backup drives and identify any
+extra, missing, or modified files.
 """
 import csv
 import datetime
