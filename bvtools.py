@@ -117,11 +117,13 @@ def diff_report(csvfiles=None):
             else:
                 print(filename.upper() + ' missing from master: ' + fullpath)
                 nextra += 1
+
         # scan through master_dict to identify any files missing from the backup ...
         for fullpath in master_dict:
             if fullpath not in backup_dict:
                 print('MASTER, but missing from ' + filename.upper() + ': ' + fullpath)
                 nmissing += 1
+
         print('-'*80)
         if nmissing == 0 and ndiffer == 0 and nextra == 0:
             summaries.append(filename + ' -> clean backup, all files match ' + csvfiles[0])
