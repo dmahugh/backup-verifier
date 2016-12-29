@@ -10,6 +10,7 @@ convert_to_csv() ---> Parse a text file containing a Windows directory listing
 diff_report() ------> Generate difference analysis for a list of CSV files
 excluded_folder() --> Identify folders to be excluded (.git, etc.)
 parseline() --------> Parse a line of text from a Windows directory listing
+summary_msg() ------> Create a 1-liner summary message for a backup comparison
 ts_to_datetime() ---> Convert Windows DIR timestamp to datetime value
 """
 import csv
@@ -156,12 +157,7 @@ def diff_report(csvfiles=None):
         if nbackup == 0:
             continue # skip the master
         nmissing, ndiffer, nextra = backup_compare(filename, master_dict)
-        if nmissing == 0 and ndiffer == 0 and nextra == 0:
-            summaries.append(filename + ' -> clean backup, all files match ' + csvfiles[0])
-        else:
-            summaries.append(filename + \
-                ' -> {0} missing files, {1} different timestamp/size, {2} extra files'. \
-                format(nmissing, ndiffer, nextra))
+        summaries.append(summary_msg(filename, csvfiles[0], nmissing, ndiffer, nextra))
 
     # print summary at end
     print(csvfiles[0] + ' -> MASTER copy ({:,} total files)'.format(len(master_dict)))
@@ -211,6 +207,31 @@ def parseline(linetext=None):
         timestamp = ts_to_datetime(linetext)
         filesize = int(linetext[20:38].strip().replace(',', ''))
         return (None, filename, timestamp, filesize)
+
+#-------------------------------------------------------------------------------
+def summary_msg(backup, master, nmissing, ndiffer, nextra):
+    """Create a 1-liner summary message for a backup comparison.
+
+    backup = filename of the backup copy
+    master = filename of the master copy that the backup was compared with
+    nmissing = # of files in master that are missing from backup
+    ndiffer = # of files that have different timestamp or size from master
+    nextra = # of files in backup that are not in master
+
+    Returns a string that describes/summarizes the results of the comparison.
+    """
+    clauses = []
+    if nmissing > 0:
+        clauses.append('{0} missing file'.format(nmissing) + ('s' if nmissing > 1 else ''))
+    if ndiffer > 0:
+        clauses.append('{0} different timestamp/size'.format(ndiffer))
+    if nextra > 0:
+        clauses.append('{0} extra file'.format(nextra) + ('s' if nextra > 1 else ''))
+
+    if nmissing == 0 and ndiffer == 0 and nextra == 0:
+        return backup + ' -> clean backup, all files match ' + master
+    else:
+        return backup + ' -> ' + ', '.join(clauses)
 
 #-------------------------------------------------------------------------------
 def ts_to_datetime(linetext):
