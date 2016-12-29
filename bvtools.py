@@ -15,23 +15,24 @@ def add_quotes(fieldvalue):
     return '"' + fieldvalue + '"' if ',' in fieldvalue else fieldvalue
 
 #-------------------------------------------------------------------------------
-def convert_to_csv(infile=None, outfile=None, path=None):
+def convert_to_csv(infile=None, outfile=None):
     """Parse a text file containing a Windows directory listing and write the
     data to a CSV file.
 
     infile = a file captured with a command such as DIR *.* /S >filename.dir
     outfile = name of a CSV file to be written
-    path = a string indicating the root path of the backup structure, so that
-           this can be removed from all data in the output file. For example,
-           if the input .dir file was created with a "DIR d:\" command, then
-           the path argument would be "d:\"
     """
-    if not infile or not outfile or not path:
+    if not infile or not outfile:
         return # nothing to do
 
     # switch console output to utf8 encoding, so that we don't crash on
     # display of filenames with non-ASCII characters ...
     sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf8', buffering=1)
+
+    # path = a string indicating the root path of the backup structure, so that
+    # this can be removed from all data in the output file. This root path is
+    # extracted from the first directory found in the input file below.
+    path = None
 
     # open file, write header row to output file
     fhandle = open(outfile, 'w')
@@ -45,6 +46,16 @@ def convert_to_csv(infile=None, outfile=None, path=None):
         folder, filename, timestamp, filesize = parseline(linetext)
         if folder:
             # reset the current folder value, to  process files in this folder
+            if not path:
+                # path not set yet, so set it now. Note that the approach used
+                # here is specific to our setup: a master server with a complete
+                # backup stored under c:\backup-master, and a set of USB drives
+                # with backups stored in the root of each one.
+                if folder.startswith(r'c:\backup-master'):
+                    path = r'c:\backup-master'
+                else:
+                    path = folder[0:2] # first 2 characters; e.g., 'd:'
+                print('>>> PATH SET: ' + path)
             if folder.startswith(path):
                 # remove the backup set root path from beginning of folder name
                 current_folder = folder[len(path):]
@@ -201,13 +212,12 @@ if __name__ == '__main__':
     diff_report()
 
     # this block of code enables command-line usage for converting a .dir to .csv
-    #if len(sys.argv) == 4:
+    #if len(sys.argv) == 3:
     #    INPUT_FILE = sys.argv[1]
     #    OUTPUT_FILE = sys.argv[2]
-    #    PREFIX = sys.argv[3]
     #    print('Input file: ' + INPUT_FILE)
     #    print('Output file: ' + OUTPUT_FILE)
-    #    convert_to_csv(infile=INPUT_FILE, outfile=OUTPUT_FILE, path=PREFIX)
+    #    convert_to_csv(infile=INPUT_FILE, outfile=OUTPUT_FILE)
     #else:
     #    print('Wrong number of arguments. Syntax = '+ \
-    #        'python dirtocsv.py infile.dir outfile.csv "prefix-to-remove-such-as-d:"')
+    #        'python bvtools.py infile.dir outfile.csv')
