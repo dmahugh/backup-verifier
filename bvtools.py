@@ -27,7 +27,8 @@ def add_quotes(fieldvalue):
 def backup_compare(backup, master):
     """Compare a backup to a master copy, return the differences.
 
-    backup = .CSV data file of the backup copy, with folder/filename/timestamp/size
+    backup = .CSV data file of the backup copy, with four columns:
+             folder/filename/timestamp/size
     master = dictionary of the master, keys = filename, values = timestamp+size
 
     Returns (nmissing, ndiffer, nextra)
@@ -114,8 +115,8 @@ def convert_to_csv(infile=None, outfile=None):
         if excluded_folder(current_folder):
             continue
 
-        datarow = add_quotes(current_folder) + ',' + add_quotes(filename) + ',' + \
-            str(timestamp) + ',' + str(filesize)
+        datarow = add_quotes(current_folder) + ',' + add_quotes(filename) + \
+            ',' + str(timestamp) + ',' + str(filesize)
 
         fhandle.write(datarow + '\n')
         lines_written += 1
@@ -139,7 +140,8 @@ def diff_report(csvfiles=None):
 
     print('-'*80)
     for nbackup, filename in enumerate(csvfiles):
-        print('MASTER reference copy:  ' if nbackup == 0 else 'Backup copy to compare: ', end='')
+        print('MASTER reference copy:  ' if nbackup == 0 else
+              'Backup copy to compare: ', end='')
         print(filename)
     print('-'*80)
 
@@ -147,7 +149,8 @@ def diff_report(csvfiles=None):
     #    key = folder + r'\' + filename
     #    value = timestamp + filesize
     master_dict = {}
-    for row in csv.reader(open(csvfiles[0], newline=''), delimiter=',', quotechar='"'):
+    for row in csv.reader(open(csvfiles[0], newline=''),\
+        delimiter=',', quotechar='"'):
         master_dict[row[0] + '\\' + row[1]] = row[2] + str(row[3])
 
     summaries = [] # list of 1-liner summaries to be displayed at end
@@ -157,10 +160,12 @@ def diff_report(csvfiles=None):
         if nbackup == 0:
             continue # skip the master
         nmissing, ndiffer, nextra = backup_compare(filename, master_dict)
-        summaries.append(summary_msg(filename, csvfiles[0], nmissing, ndiffer, nextra))
+        summaries.append( \
+            summary_msg(filename, csvfiles[0], nmissing, ndiffer, nextra))
 
     # print summary at end
-    print(csvfiles[0] + ' -> MASTER copy ({:,} total files)'.format(len(master_dict)))
+    print(csvfiles[0] + \
+        ' -> MASTER copy ({:,} total files)'.format(len(master_dict)))
     for summary in summaries:
         print(summary)
 
@@ -222,11 +227,13 @@ def summary_msg(backup, master, nmissing, ndiffer, nextra):
     """
     clauses = []
     if nmissing > 0:
-        clauses.append('{0} missing file'.format(nmissing) + ('s' if nmissing > 1 else ''))
+        clauses.append('{0} missing file'.format(nmissing) +
+                       ('s' if nmissing > 1 else ''))
     if ndiffer > 0:
         clauses.append('{0} different timestamp/size'.format(ndiffer))
     if nextra > 0:
-        clauses.append('{0} extra file'.format(nextra) + ('s' if nextra > 1 else ''))
+        clauses.append('{0} extra file'.format(nextra) +
+                       ('s' if nextra > 1 else ''))
 
     if nmissing == 0 and ndiffer == 0 and nextra == 0:
         return backup + ' -> clean backup, all files match ' + master
@@ -252,7 +259,7 @@ if __name__ == '__main__':
     # directory listings of a set of backup drives
     diff_report()
 
-    # this block of code enables command-line usage for converting a .dir to .csv
+    # this enables command-line usage for converting a .dir to .csv
     #if len(sys.argv) == 3:
     #    INPUT_FILE = sys.argv[1]
     #    OUTPUT_FILE = sys.argv[2]
