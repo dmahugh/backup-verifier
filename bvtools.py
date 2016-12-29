@@ -15,6 +15,42 @@ def add_quotes(fieldvalue):
     return '"' + fieldvalue + '"' if ',' in fieldvalue else fieldvalue
 
 #-------------------------------------------------------------------------------
+def backup_compare(backup, master):
+    """Compare a backup to a master copy, return the differences.
+
+    backup = .CSV data file of the backup copy, with folder/filename/timestamp/size
+    master = dictionary of the master, keys = filename, values = timestamp+size
+
+    Returns (nmissing, ndiffer, nextra)
+    """
+    nmissing = 0
+    ndiffer = 0
+    nextra = 0
+    print('comparing ' + backup + ' to master ...')
+    backup_dict = {} # dictionary of this backup, populated in loop below
+    # scan through this backup and compare each file to master dictionary ...
+    for row in csv.reader(open(backup, newline=''), delimiter=',', quotechar='"'):
+        fullpath = row[0] + '\\' + row[1]
+        ts_size = row[2] + row[3]
+        backup_dict[fullpath] = ts_size
+        if fullpath in master:
+            if master[fullpath] != ts_size:
+                print(backup.upper() + ' differs from master: ' + fullpath)
+                ndiffer += 1
+        else:
+            print(backup.upper() + ' missing from master: ' + fullpath)
+            nextra += 1
+
+    # scan through master_dict to identify any files missing from the backup ...
+    for fullpath in master:
+        if fullpath not in backup_dict:
+            print('MASTER, but missing from ' + backup.upper() + ': ' + fullpath)
+            nmissing += 1
+
+    print('-'*80)
+    return (nmissing, ndiffer, nextra)
+
+#-------------------------------------------------------------------------------
 def convert_to_csv(infile=None, outfile=None):
     """Parse a text file containing a Windows directory listing and write the
     data to a CSV file.
@@ -111,31 +147,7 @@ def diff_report(csvfiles=None):
     for nbackup, filename in enumerate(csvfiles):
         if nbackup == 0:
             continue # skip the master
-        nmissing = 0
-        ndiffer = 0
-        nextra = 0
-        print('comparing ' + filename + ' to master ...')
-        backup_dict = {} # dictionary of this backup, populated in loop below
-        # scan through this backup and compare each file to master dictionary ...
-        for row in csv.reader(open(filename, newline=''), delimiter=',', quotechar='"'):
-            fullpath = row[0] + '\\' + row[1]
-            ts_size = row[2] + row[3]
-            backup_dict[fullpath] = ts_size
-            if fullpath in master_dict:
-                if master_dict[fullpath] != ts_size:
-                    print(filename.upper() + ' differs from master: ' + fullpath)
-                    ndiffer += 1
-            else:
-                print(filename.upper() + ' missing from master: ' + fullpath)
-                nextra += 1
-
-        # scan through master_dict to identify any files missing from the backup ...
-        for fullpath in master_dict:
-            if fullpath not in backup_dict:
-                print('MASTER, but missing from ' + filename.upper() + ': ' + fullpath)
-                nmissing += 1
-
-        print('-'*80)
+        nmissing, ndiffer, nextra = backup_compare(filename, master_dict)
         if nmissing == 0 and ndiffer == 0 and nextra == 0:
             summaries.append(filename + ' -> clean backup, all files match ' + csvfiles[0])
         else:
