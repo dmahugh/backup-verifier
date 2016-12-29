@@ -3,6 +3,14 @@ Tools for backup verification.
 
 These utilities are used to analyze a set of backup drives and identify any
 extra, missing, or modified files.
+
+add_quotes() -------> add quotes to a string if contains commas
+backup_compare() ---> compare a backup to master, return differences
+convert_to_csv() ---> Parse a text file containing a Windows directory listing
+diff_report() ------> Generate difference analysis for a list of CSV files
+excluded_folder() --> Identify folders to be excluded (.git, etc.)
+parseline() --------> Parse a line of text from a Windows directory listing
+ts_to_datetime() ---> Convert Windows DIR timestamp to datetime value
 """
 import csv
 import datetime
@@ -161,18 +169,6 @@ def diff_report(csvfiles=None):
         print(summary)
 
 #-------------------------------------------------------------------------------
-def dirlisting_to_datetime(linetext):
-    """Convert a directory listing timestamp (as displayed by Windows DIR, for
-    example "12/08/2016  02:33 PM") to a datetime value.
-
-    NOTE: these values don't include the seconds portion of the timestamp.
-    This is not a problem for the original use of this function, but could be
-    an issue if this code is used elsewhere.
-    """
-    windows_timestamp = linetext[:20]
-    return datetime.datetime.strptime(windows_timestamp, "%m/%d/%Y %I:%M %p")
-
-#-------------------------------------------------------------------------------
 def excluded_folder(folder=None):
     """Determine whether a folder is to be excluded from the output CSV file.
 
@@ -212,9 +208,21 @@ def parseline(linetext=None):
         return (linetext[13:], None, None, None)
     else:
         filename = linetext[39:]
-        timestamp = dirlisting_to_datetime(linetext)
+        timestamp = ts_to_datetime(linetext)
         filesize = int(linetext[20:38].strip().replace(',', ''))
         return (None, filename, timestamp, filesize)
+
+#-------------------------------------------------------------------------------
+def ts_to_datetime(linetext):
+    """Convert a directory listing timestamp (as displayed by Windows DIR, for
+    example "12/08/2016  02:33 PM") to a datetime value.
+
+    NOTE: these values don't include the seconds portion of the timestamp.
+    This is not a problem for the original use of this function, but could be
+    an issue if this code is used elsewhere.
+    """
+    windows_timestamp = linetext[:20]
+    return datetime.datetime.strptime(windows_timestamp, "%m/%d/%Y %I:%M %p")
 
 #-------------------------------------------------------------------------------
 if __name__ == '__main__':
