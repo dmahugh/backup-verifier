@@ -71,12 +71,16 @@ def convert_to_csv(infile=None, outfile=None, path=None):
     print('{} lines written to '.format(lines_written) + outfile)
 
 #-------------------------------------------------------------------------------
-def diff_report(csvfiles):
+def diff_report(csvfiles=None):
     """Generate a difference analysis for a list of CSV files. The CSV files
     should be as created by convert_to_csv, and the first file in the list is
     considered the "master" copy for analysis purposes. Output is displayed to
     the console, can be captured to a text file as needed.
     """
+    if not csvfiles:
+        # if no CSV files were specified, use our current defaults
+        csvfiles = ['master.csv', 'drive1.csv', 'drive2.csv', 'drive3.csv']
+
     print('-'*80)
     for nbackup, filename in enumerate(csvfiles):
         print('MASTER reference copy:  ' if nbackup == 0 else 'Backup copy to compare: ', end='')
@@ -189,7 +193,10 @@ def parseline(linetext=None):
 
 #-------------------------------------------------------------------------------
 if __name__ == '__main__':
-    diff_report(['master.csv', 'drive1.csv', 'drive2.csv', 'drive3.csv'])
+
+    # generate a diference report for a set of .CSV files containing the
+    # directory listings of a set of backup drives
+    diff_report()
 
     # this block of code enables command-line usage for converting a .dir to .csv
     #if len(sys.argv) == 4:
