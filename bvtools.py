@@ -39,7 +39,7 @@ def backup_compare(backup, master):
     print('comparing ' + backup + ' to master ...')
     backup_dict = {} # dictionary of this backup, populated in loop below
     # scan through this backup and compare each file to master dictionary ...
-    for row in csv.reader(open(backup, newline=''), delimiter=',', quotechar='"'):
+    for row in csv.reader(open(backup), delimiter=',', quotechar='"'):
         fullpath = row[0] + '\\' + row[1]
         ts_size = row[2] + row[3]
         backup_dict[fullpath] = ts_size
@@ -54,7 +54,8 @@ def backup_compare(backup, master):
     # scan through master_dict to identify any files missing from the backup ...
     for fullpath in master:
         if fullpath not in backup_dict:
-            print('MASTER, but missing from ' + backup.upper() + ': ' + fullpath)
+            print('MASTER, but missing from ' + backup.upper() + ': ' +
+                  fullpath)
             nmissing += 1
 
     print('-'*80)
@@ -73,7 +74,8 @@ def convert_to_csv(infile=None, outfile=None):
 
     # switch console output to utf8 encoding, so that we don't crash on
     # display of filenames with non-ASCII characters ...
-    sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf8', buffering=1)
+    sys.stdout = open(sys.stdout.fileno(), mode='w',
+                      encoding='utf8', buffering=1)
 
     # path = a string indicating the root path of the backup structure, so that
     # this can be removed from all data in the output file. This root path is
