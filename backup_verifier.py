@@ -1,4 +1,8 @@
 """backup_verifier.py
+
+MIT license
+Copyright (c) 2016 by Doug Mahugh
+
 Tool for analyzing a set of directory listings from backup drives and
 identifying discrepancies: the extra, missing, or modified files on each drive.
 
