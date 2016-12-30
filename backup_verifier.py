@@ -1,8 +1,6 @@
-"""bvtools.py
-Tools for backup verification.
-
-These utilities are used to analyze a set of backup drives and identify any
-extra, missing, or modified files.
+"""backup_verifier.py
+Tool for analyzing a set of directory listings from backup drives and
+identifying discrepancies: the extra, missing, or modified files on each drive.
 
 add_quotes() -------> add quotes to a string if contains commas
 backup_compare() ---> compare a backup to master, return differences
@@ -15,6 +13,7 @@ ts_to_datetime() ---> Convert Windows DIR timestamp to datetime value
 """
 import csv
 import datetime
+import os
 import sys
 import time
 
@@ -38,8 +37,9 @@ def backup_compare(backup, master, report_file):
     nmissing = 0
     ndiffer = 0
     nextra = 0
-    report_file.write('comparing ' + backup + ' to master ...\n')
-    print('comparing ' + backup + ' to master ...')
+    report_file.write('comparing ' + os.path.splitext(backup)[0] + \
+        ' to MASTER COPY ...\n')
+    print('comparing ' + os.path.splitext(backup)[0] + ' to master ...')
     backup_dict = {} # dictionary of this backup, populated in loop below
     # scan through this backup and compare each file to master dictionary ...
     for row in csv.reader(open(backup), delimiter=',', quotechar='"'):
@@ -48,17 +48,19 @@ def backup_compare(backup, master, report_file):
         backup_dict[fullpath] = ts_size
         if fullpath in master:
             if master[fullpath] != ts_size:
-                report_file.write(backup.upper() + ' differs from master: ' + fullpath + '\n')
+                report_file.write(os.path.splitext(backup)[0] + \
+                    ' differs from master: ' + fullpath + '\n')
                 ndiffer += 1
         else:
-            report_file.write(backup.upper() + ' missing from master: ' + fullpath + '\n')
+            report_file.write(os.path.splitext(backup)[0] + \
+                ' missing from master: ' + fullpath + '\n')
             nextra += 1
 
     # scan through master_dict to identify any files missing from the backup ...
     for fullpath in master:
         if fullpath not in backup_dict:
-            report_file.write('MASTER, but missing from ' + backup.upper() + ': ' +
-                              fullpath + '\n')
+            report_file.write('MASTER, but missing from ' + \
+                os.path.splitext(backup)[0] + ': ' + fullpath + '\n')
             nmissing += 1
 
     report_file.write('-'*80 + '\n')
@@ -167,13 +169,14 @@ def diff_report(csvfiles=None):
     for nbackup, filename in enumerate(csvfiles):
         if nbackup == 0:
             continue # skip the master
-        nmissing, ndiffer, nextra = backup_compare(filename, master_dict, report_file)
+        nmissing, ndiffer, nextra = \
+            backup_compare(filename, master_dict, report_file)
         summaries.append( \
             summary_msg(filename, csvfiles[0], nmissing, ndiffer, nextra))
 
     # print summary at end
-    masterfilesumm = csvfiles[0] + \
-        ' --- MASTER copy ({:,} total files)'.format(len(master_dict))
+    masterfilesumm = os.path.splitext(csvfiles[0])[0] + \
+        ' --- MASTER COPY ({:,} files)'.format(len(master_dict))
     report_file.write(masterfilesumm + '\n' + '-'*80 + '\n')
     print('-'*80 + '\n' + masterfilesumm + '\n' + '-'*80)
     for summary in summaries:
@@ -181,7 +184,8 @@ def diff_report(csvfiles=None):
         print(summary)
 
     report_file.close()
-    print('-'*80 + '\n' + 'full detail output: ' + report_filename + '\n' + '-'*80)
+    print('-'*80 + '\n' + 'full detail output: ' +
+          report_filename + '\n' + '-'*80)
 
 #-------------------------------------------------------------------------------
 def excluded_folder(folder=None):
@@ -252,7 +256,7 @@ def summary_msg(backup, master, nmissing, ndiffer, nextra):
     if nmissing == 0 and ndiffer == 0 and nextra == 0:
         return backup + ' --- clean backup, all files match ' + master
     else:
-        return backup + ' --- ' + ', '.join(clauses)
+        return os.path.splitext(backup)[0] + ' --- ' + ', '.join(clauses)
 
 #-------------------------------------------------------------------------------
 def ts_to_datetime(linetext):
@@ -282,4 +286,4 @@ if __name__ == '__main__':
     #    convert_to_csv(infile=INPUT_FILE, outfile=OUTPUT_FILE)
     #else:
     #    print('Wrong number of arguments. Syntax = '+ \
-    #        'python bvtools.py infile.dir outfile.csv')
+    #        'python backup_verifier.py infile.dir outfile.csv')
