@@ -28,8 +28,9 @@ def add_quotes(fieldvalue):
 def backup_compare(backup, master, report_file):
     """Compare a backup to a master copy, return the differences.
 
-    backup = .CSV data file of the backup copy, with four columns:
-             folder/filename/timestamp/size
+    backup = data file of the backup copy; either a .csv with four columns
+             (folder/filename/timestamp/size) or a .dir capture of a Windows
+             directory listing
     master = dictionary of the master, keys = filename, values = timestamp+size
     report_file = file handle to open report file for detailed output
 
@@ -41,8 +42,16 @@ def backup_compare(backup, master, report_file):
     display('analyzing ' + os.path.splitext(backup)[0] + ' ...', report_file, 'cn')
     display('>>> ' + os.path.splitext(backup)[0].upper() + ' <<<', report_file, 'f')
     backup_dict = {} # dictionary of this backup, populated in loop below
+
+    if os.path.splitext(backup)[1].lower() == '.csv':
+        datafile = backup
+    else:
+        datafile = os.path.splitext(backup)[0] + '.csv'
+        display('parsing ' + backup + ' ...', report_file, 'cn')
+        convert_to_csv(infile=backup, outfile=datafile)
+
     # scan through this backup and compare each file to master dictionary ...
-    for row in csv.reader(open(backup), delimiter=',', quotechar='"'):
+    for row in csv.reader(open(datafile), delimiter=',', quotechar='"'):
         fullpath = row[0] + '\\' + row[1]
         ts_size = row[2] + row[3]
         backup_dict[fullpath] = ts_size
@@ -104,7 +113,6 @@ def convert_to_csv(infile=None, outfile=None):
                     path = r'c:\backup-master'
                 else:
                     path = folder[0:2] # first 2 characters; e.g., 'd:'
-                print('>>> PATH SET: ' + path)
             if folder.startswith(path):
                 # remove the backup set root path from beginning of folder name
                 current_folder = folder[len(path):]
@@ -124,52 +132,63 @@ def convert_to_csv(infile=None, outfile=None):
         fhandle.write(datarow + '\n')
         lines_written += 1
         if lines_written % 10000 == 0:
-            print('{} lines written to '.format(lines_written) + outfile)
+            display('{} lines written to '.format(lines_written) + outfile, None, 'cn')
 
     # close file, summarize
     fhandle.close()
-    print('{} lines written to '.format(lines_written) + outfile)
+    display('{} lines written to '.format(lines_written) + outfile, None, 'cn')
 
 #-------------------------------------------------------------------------------
-def diff_report(csvfiles=None):
-    """Generate a difference analysis for a list of CSV files. The CSV files
-    should be as created by convert_to_csv, and the first file in the list is
-    considered the "master" copy for analysis purposes. Output is displayed to
-    the console, can be captured to a text file as needed.
+def diff_report(datafiles=None):
+    """Generate a difference analysis for a list of data files.
+
+    First entry in the list is the "master" copy for analysis purposes.
+
+    Each file can be either a .csv file or a .dir file containing a Windows
+    directory listing, in which case the same-named .csv file is created on the
+    fly.
+
+    A full-detail log file is created, and a brief summary on the console.
     """
-    if not csvfiles:
+    if not datafiles:
         # if no CSV files were specified, use our current defaults
-        csvfiles = ['master.csv', 'drive1.csv', 'drive2.csv', 'drive3.csv']
+        datafiles = ['master.csv', 'drive1.csv', 'drive2.csv', 'drive3.csv']
 
     # open output report file
     report_filename = 'backups-' + time.strftime("%Y-%m-%d-%H%M%S") + '.rpt'
     report_file = open(report_filename, 'w')
     display('log file: ' + report_filename, report_file)
-    display('  MASTER: ' + csvfiles[0], report_file, 'f')
-    display('  copies: ' + str(csvfiles[1:]), report_file, 'f')
+    display('  MASTER: ' + datafiles[0], report_file, 'f')
+    display('  copies: ' + str(datafiles[1:]), report_file, 'f')
     display('-'*80, report_file, 'f')
 
     # master_dict = a dictionary created from the master backup (first file)
     #    key = folder + r'\' + filename
     #    value = timestamp + filesize
+    if os.path.splitext(datafiles[0])[1].lower() == '.csv':
+        master_data = datafiles[0]
+    else:
+        display('parsing ' + datafiles[0] + ' ...', None, 'cn')
+        master_data = os.path.splitext(datafiles[0])[0] + '.csv'
+        convert_to_csv(datafiles[0], master_data)
     display('creating dictionary from MASTER COPY ...', report_file, 'cn')
     master_dict = {}
-    for row in csv.reader(open(csvfiles[0], newline=''),\
+    for row in csv.reader(open(master_data, newline=''),\
         delimiter=',', quotechar='"'):
         master_dict[row[0] + '\\' + row[1]] = row[2] + str(row[3])
 
-    masterfilesumm = os.path.splitext(csvfiles[0])[0] + \
+    masterfilesumm = os.path.splitext(datafiles[0])[0] + \
         ' -- MASTER COPY ({:,} files)'.format(len(master_dict))
     display(masterfilesumm, report_file)
     display('-'*80, report_file, 'f')
 
     # compare each backup against the master
-    for nbackup, filename in enumerate(csvfiles):
+    for nbackup, filename in enumerate(datafiles):
         if nbackup == 0:
             continue # skip the master
         nmissing, ndiffer, nextra = \
             backup_compare(filename, master_dict, report_file)
-        summary = summary_msg(filename, csvfiles[0], nmissing, ndiffer, nextra)
+        summary = summary_msg(filename, datafiles[0], nmissing, ndiffer, nextra)
         display(summary, report_file)
         display('-'*80, report_file, 'f')
 
@@ -263,7 +282,7 @@ def summary_msg(backup, master, nmissing, ndiffer, nextra):
                        ('s' if nextra > 1 else ''))
 
     if nmissing == 0 and ndiffer == 0 and nextra == 0:
-        return backup + ' -- clean backup, all files match ' + master
+        return os.path.splitext(backup)[0] + ' -- clean backup, all files match ' + master
     else:
         return os.path.splitext(backup)[0] + ' -- ' + ', '.join(clauses)
 
@@ -282,9 +301,9 @@ def ts_to_datetime(linetext):
 #-------------------------------------------------------------------------------
 if __name__ == '__main__':
 
-    # generate a diference report for a set of .CSV files containing the
-    # directory listings of a set of backup drives
-    diff_report()
+    # generate a diference report for a set of .CSV or .DIR files passed as
+    # command line arguments
+    diff_report(sys.argv[1:])
 
     # this enables command-line usage for converting a .dir to .csv
     #if len(sys.argv) == 3:
