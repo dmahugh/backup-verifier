@@ -144,13 +144,13 @@ def diff_report(csvfiles=None):
         csvfiles = ['master.csv', 'drive1.csv', 'drive2.csv', 'drive3.csv']
 
     # open output report file
-    report_filename = 'backups-' + time.strftime("%Y-%m-%d-%H%M%S") + '.txt'
+    report_filename = 'backups-' + time.strftime("%Y-%m-%d-%H%M%S") + '.rpt'
     report_file = open(report_filename, 'w')
+    report_file.write('filename: ' + report_filename + '\n')
+    report_file.write('-'*80 + '\n')
 
-    for nbackup, filename in enumerate(csvfiles):
-        report_file.write('MASTER reference copy:  ' if nbackup == 0 else
-                          'Backup copy to compare: ')
-        report_file.write(filename + '\n')
+    report_file.write('Master copy: ' + csvfiles[0] + '\n')
+    report_file.write('    Backups: ' + str(csvfiles[1:]) + '\n')
     report_file.write('-'*80 + '\n')
 
     # master_dict = a dictionary created from the master backup (first file)
@@ -174,7 +174,7 @@ def diff_report(csvfiles=None):
     # print summary at end
     masterfilesumm = csvfiles[0] + \
         ' --- MASTER copy ({:,} total files)'.format(len(master_dict))
-    report_file.write(masterfilesumm + '\n')
+    report_file.write(masterfilesumm + '\n' + '-'*80 + '\n')
     print('-'*80 + '\n' + masterfilesumm + '\n' + '-'*80)
     for summary in summaries:
         report_file.write(summary + '\n')

@@ -4,6 +4,7 @@ _todo.txt
 *.json
 *.dir
 *.csv
+*.rpt
 
 # don't include these subfolders
 __pycache__/
