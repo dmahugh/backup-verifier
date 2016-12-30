@@ -82,11 +82,6 @@ def convert_to_csv(infile=None, outfile=None):
     if not infile or not outfile:
         return # nothing to do
 
-    # switch console output to utf8 encoding, so that we don't crash on
-    # display of filenames with non-ASCII characters ...
-    sys.stdout = open(sys.stdout.fileno(), mode='w',
-                      encoding='utf8', buffering=1)
-
     # path = a string indicating the root path of the backup structure, so that
     # this can be removed from all data in the output file. This root path is
     # extracted from the first directory found in the input file below.
@@ -134,8 +129,7 @@ def convert_to_csv(infile=None, outfile=None):
         if lines_written % 10000 == 0:
             display('{} lines written to '.format(lines_written) + outfile, None, 'cn')
 
-    # close file, summarize
-    fhandle.close()
+    fhandle.close() #/// AFTER THIS, PRINT is BROKEN - ERRNO 9
     display('{} lines written to '.format(lines_written) + outfile, None, 'cn')
 
 #-------------------------------------------------------------------------------
@@ -300,6 +294,12 @@ def ts_to_datetime(linetext):
 
 #-------------------------------------------------------------------------------
 if __name__ == '__main__':
+
+    # switch console output to utf8 encoding, so that we don't crash on
+    # display of filenames with non-ASCII characters. Note that this should
+    # only be done ONCE - if it's done a second time, "ERRNO 9" errors
+    # occur on print() statements. (Why?)
+    sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf8', buffering=1)
 
     # generate a diference report for a set of .CSV or .DIR files passed as
     # command line arguments
