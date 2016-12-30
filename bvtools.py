@@ -16,6 +16,7 @@ ts_to_datetime() ---> Convert Windows DIR timestamp to datetime value
 import csv
 import datetime
 import sys
+import time
 
 #-------------------------------------------------------------------------------
 def add_quotes(fieldvalue):
@@ -24,18 +25,20 @@ def add_quotes(fieldvalue):
     return '"' + fieldvalue + '"' if ',' in fieldvalue else fieldvalue
 
 #-------------------------------------------------------------------------------
-def backup_compare(backup, master):
+def backup_compare(backup, master, report_file):
     """Compare a backup to a master copy, return the differences.
 
     backup = .CSV data file of the backup copy, with four columns:
              folder/filename/timestamp/size
     master = dictionary of the master, keys = filename, values = timestamp+size
+    report_file = file handle to open report file for detailed output
 
     Returns (nmissing, ndiffer, nextra)
     """
     nmissing = 0
     ndiffer = 0
     nextra = 0
+    report_file.write('comparing ' + backup + ' to master ...\n')
     print('comparing ' + backup + ' to master ...')
     backup_dict = {} # dictionary of this backup, populated in loop below
     # scan through this backup and compare each file to master dictionary ...
@@ -45,20 +48,20 @@ def backup_compare(backup, master):
         backup_dict[fullpath] = ts_size
         if fullpath in master:
             if master[fullpath] != ts_size:
-                print(backup.upper() + ' differs from master: ' + fullpath)
+                report_file.write(backup.upper() + ' differs from master: ' + fullpath + '\n')
                 ndiffer += 1
         else:
-            print(backup.upper() + ' missing from master: ' + fullpath)
+            report_file.write(backup.upper() + ' missing from master: ' + fullpath + '\n')
             nextra += 1
 
     # scan through master_dict to identify any files missing from the backup ...
     for fullpath in master:
         if fullpath not in backup_dict:
-            print('MASTER, but missing from ' + backup.upper() + ': ' +
-                  fullpath)
+            report_file.write('MASTER, but missing from ' + backup.upper() + ': ' +
+                              fullpath + '\n')
             nmissing += 1
 
-    print('-'*80)
+    report_file.write('-'*80 + '\n')
     return (nmissing, ndiffer, nextra)
 
 #-------------------------------------------------------------------------------
@@ -140,12 +143,15 @@ def diff_report(csvfiles=None):
         # if no CSV files were specified, use our current defaults
         csvfiles = ['master.csv', 'drive1.csv', 'drive2.csv', 'drive3.csv']
 
-    print('-'*80)
+    # open output report file
+    report_filename = 'backups-' + time.strftime("%Y-%m-%d-%H%M%S") + '.txt'
+    report_file = open(report_filename, 'w')
+
     for nbackup, filename in enumerate(csvfiles):
-        print('MASTER reference copy:  ' if nbackup == 0 else
-              'Backup copy to compare: ', end='')
-        print(filename)
-    print('-'*80)
+        report_file.write('MASTER reference copy:  ' if nbackup == 0 else
+                          'Backup copy to compare: ')
+        report_file.write(filename + '\n')
+    report_file.write('-'*80 + '\n')
 
     # master_dict = a dictionary created from the master backup (first file)
     #    key = folder + r'\' + filename
@@ -161,15 +167,21 @@ def diff_report(csvfiles=None):
     for nbackup, filename in enumerate(csvfiles):
         if nbackup == 0:
             continue # skip the master
-        nmissing, ndiffer, nextra = backup_compare(filename, master_dict)
+        nmissing, ndiffer, nextra = backup_compare(filename, master_dict, report_file)
         summaries.append( \
             summary_msg(filename, csvfiles[0], nmissing, ndiffer, nextra))
 
     # print summary at end
-    print(csvfiles[0] + \
-        ' -> MASTER copy ({:,} total files)'.format(len(master_dict)))
+    masterfilesumm = csvfiles[0] + \
+        ' --- MASTER copy ({:,} total files)'.format(len(master_dict))
+    report_file.write(masterfilesumm + '\n')
+    print('-'*80 + '\n' + masterfilesumm + '\n' + '-'*80)
     for summary in summaries:
+        report_file.write(summary + '\n')
         print(summary)
+
+    report_file.close()
+    print('-'*80 + '\n' + 'full detail output: ' + report_filename + '\n' + '-'*80)
 
 #-------------------------------------------------------------------------------
 def excluded_folder(folder=None):
@@ -238,9 +250,9 @@ def summary_msg(backup, master, nmissing, ndiffer, nextra):
                        ('s' if nextra > 1 else ''))
 
     if nmissing == 0 and ndiffer == 0 and nextra == 0:
-        return backup + ' -> clean backup, all files match ' + master
+        return backup + ' --- clean backup, all files match ' + master
     else:
-        return backup + ' -> ' + ', '.join(clauses)
+        return backup + ' --- ' + ', '.join(clauses)
 
 #-------------------------------------------------------------------------------
 def ts_to_datetime(linetext):
