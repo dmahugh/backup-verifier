@@ -13,7 +13,9 @@ This is a tool to identify differences between one or more copies of a backup st
 # Background
 I blogged briefly about this tool [here](http://mahugh.com/2016/12/28/verifying-backup-drives/). It's something I've meant to write for years, because I don't care for the other ways to check differences between directory trees in Windows.
 
-You can find details about my approach to managing my backups [here](http://mahugh.com/2013/04/02/my-backup-process/). I don't recommend my approach for others, because I don't care how you manage your backups and I certainly don't want any responsibility for how well your approach works. For me, though, this works great, and I have a backup stream that contains (among other things) every single photo I've ever taken that I felt was work keeping, including thousands of photos from pre-digital days and over 300,000 total photos now. If a cloud backup gives you what you want from life, you should stop reading and just do that instead. :)
+You can find details about my approach to managing my backups [here](http://mahugh.com/2013/04/02/my-backup-process/). I don't recommend my approach for others, because I don't care how you manage your backups and I certainly don't want any responsibility for how well your approach works. For me, though, this works great, and I have a backup stream that contains (among other things) every single photo I've ever taken that I felt was worth keeping, including thousands of photos from pre-digital days and over 300,000 total photos now.
+
+If a cloud backup gives you what you want from life, you should stop reading and just do that instead. :)
 
 # Installation
 This program has no external dependencies, so if you have Python 3.5 or later installed you can just clone the repo and then run it with this command:
