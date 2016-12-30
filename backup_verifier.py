@@ -127,7 +127,8 @@ def convert_to_csv(infile=None, outfile=None):
         fhandle.write(datarow + '\n')
         lines_written += 1
         if lines_written % 10000 == 0:
-            display('{} lines written to '.format(lines_written) + outfile, None, 'cn')
+            display('{0} lines parsed from {1} and written to '. \
+                format(lines_written, infile) + outfile, None, 'cn')
 
     fhandle.close() #/// AFTER THIS, PRINT is BROKEN - ERRNO 9
     display('{} lines written to '.format(lines_written) + outfile, None, 'cn')
