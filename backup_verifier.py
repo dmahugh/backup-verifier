@@ -6,6 +6,7 @@ add_quotes() -------> add quotes to a string if contains commas
 backup_compare() ---> compare a backup to master, return differences
 convert_to_csv() ---> Parse a text file containing a Windows directory listing
 diff_report() ------> Generate difference analysis for a list of CSV files
+display() ----------> Display a message and/or write it to report file
 excluded_folder() --> Identify folders to be excluded (.git, etc.)
 parseline() --------> Parse a line of text from a Windows directory listing
 summary_msg() ------> Create a 1-liner summary message for a backup comparison
@@ -37,9 +38,8 @@ def backup_compare(backup, master, report_file):
     nmissing = 0
     ndiffer = 0
     nextra = 0
-    report_file.write('comparing ' + os.path.splitext(backup)[0] + \
-        ' to MASTER COPY ...\n')
-    print('comparing ' + os.path.splitext(backup)[0] + ' to master ...')
+    display('analyzing ' + os.path.splitext(backup)[0] + ' ...', report_file, 'cn')
+    display('>>> ' + os.path.splitext(backup)[0].upper() + ' <<<', report_file, 'f')
     backup_dict = {} # dictionary of this backup, populated in loop below
     # scan through this backup and compare each file to master dictionary ...
     for row in csv.reader(open(backup), delimiter=',', quotechar='"'):
@@ -48,22 +48,18 @@ def backup_compare(backup, master, report_file):
         backup_dict[fullpath] = ts_size
         if fullpath in master:
             if master[fullpath] != ts_size:
-                report_file.write(os.path.splitext(backup)[0] + \
-                    ' differs from master: ' + fullpath + '\n')
+                display('modified: ' + fullpath, report_file, 'f')
                 ndiffer += 1
         else:
-            report_file.write(os.path.splitext(backup)[0] + \
-                ' missing from master: ' + fullpath + '\n')
+            display('extra: ' + fullpath, report_file, 'f')
             nextra += 1
 
     # scan through master_dict to identify any files missing from the backup ...
     for fullpath in master:
         if fullpath not in backup_dict:
-            report_file.write('MASTER, but missing from ' + \
-                os.path.splitext(backup)[0] + ': ' + fullpath + '\n')
+            display('missing: ' + fullpath, report_file, 'f')
             nmissing += 1
 
-    report_file.write('-'*80 + '\n')
     return (nmissing, ndiffer, nextra)
 
 #-------------------------------------------------------------------------------
@@ -148,22 +144,24 @@ def diff_report(csvfiles=None):
     # open output report file
     report_filename = 'backups-' + time.strftime("%Y-%m-%d-%H%M%S") + '.rpt'
     report_file = open(report_filename, 'w')
-    report_file.write('filename: ' + report_filename + '\n')
-    report_file.write('-'*80 + '\n')
-
-    report_file.write('Master copy: ' + csvfiles[0] + '\n')
-    report_file.write('    Backups: ' + str(csvfiles[1:]) + '\n')
-    report_file.write('-'*80 + '\n')
+    display('log file: ' + report_filename, report_file)
+    display('  MASTER: ' + csvfiles[0], report_file, 'f')
+    display('  copies: ' + str(csvfiles[1:]), report_file, 'f')
+    display('-'*80, report_file, 'f')
 
     # master_dict = a dictionary created from the master backup (first file)
     #    key = folder + r'\' + filename
     #    value = timestamp + filesize
+    display('creating dictionary from MASTER COPY ...', report_file, 'cn')
     master_dict = {}
     for row in csv.reader(open(csvfiles[0], newline=''),\
         delimiter=',', quotechar='"'):
         master_dict[row[0] + '\\' + row[1]] = row[2] + str(row[3])
 
-    summaries = [] # list of 1-liner summaries to be displayed at end
+    masterfilesumm = os.path.splitext(csvfiles[0])[0] + \
+        ' -- MASTER COPY ({:,} files)'.format(len(master_dict))
+    display(masterfilesumm, report_file)
+    display('-'*80, report_file, 'f')
 
     # compare each backup against the master
     for nbackup, filename in enumerate(csvfiles):
@@ -171,21 +169,32 @@ def diff_report(csvfiles=None):
             continue # skip the master
         nmissing, ndiffer, nextra = \
             backup_compare(filename, master_dict, report_file)
-        summaries.append( \
-            summary_msg(filename, csvfiles[0], nmissing, ndiffer, nextra))
-
-    # print summary at end
-    masterfilesumm = os.path.splitext(csvfiles[0])[0] + \
-        ' --- MASTER COPY ({:,} files)'.format(len(master_dict))
-    report_file.write(masterfilesumm + '\n' + '-'*80 + '\n')
-    print('-'*80 + '\n' + masterfilesumm + '\n' + '-'*80)
-    for summary in summaries:
-        report_file.write(summary + '\n')
-        print(summary)
+        summary = summary_msg(filename, csvfiles[0], nmissing, ndiffer, nextra)
+        display(summary, report_file)
+        display('-'*80, report_file, 'f')
 
     report_file.close()
-    print('-'*80 + '\n' + 'full detail output: ' +
-          report_filename + '\n' + '-'*80)
+
+#-------------------------------------------------------------------------------
+def display(message, report_file, flags='cf'):
+    """Display a message and/or write it to report file
+
+    message = the text message
+    report_file = file handle of open report file
+    flags = contains 'c' for console output and/or 'f' for file output;
+            default is 'cf'; may also contain 'n' to suppress newline on
+            console output
+    """
+    flags = flags.lower() if flags else 'cf'
+    if len(message) < 80:
+        message = message.ljust(80)
+    if 'c' in flags:
+        if 'n' in flags:
+            print('\r' + message, end='')
+        else:
+            print('\r' + message)
+    if 'f' in flags:
+        report_file.write(message + '\n')
 
 #-------------------------------------------------------------------------------
 def excluded_folder(folder=None):
@@ -254,9 +263,9 @@ def summary_msg(backup, master, nmissing, ndiffer, nextra):
                        ('s' if nextra > 1 else ''))
 
     if nmissing == 0 and ndiffer == 0 and nextra == 0:
-        return backup + ' --- clean backup, all files match ' + master
+        return backup + ' -- clean backup, all files match ' + master
     else:
-        return os.path.splitext(backup)[0] + ' --- ' + ', '.join(clauses)
+        return os.path.splitext(backup)[0] + ' -- ' + ', '.join(clauses)
 
 #-------------------------------------------------------------------------------
 def ts_to_datetime(linetext):
