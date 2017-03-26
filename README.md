@@ -3,7 +3,6 @@ This is a tool to identify differences between one or more copies of a backup st
 
 ![language:Python](https://img.shields.io/badge/Language-Python-blue.svg?style=flat-square) ![license:MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square) ![release:2.0](https://img.shields.io/badge/Release-1.0-lightgrey.svg?style=flat-square)
 
-# Table of Contents
 * [Background](#background)
 * [Installation](#installation)
 * [Usage](#usage)
