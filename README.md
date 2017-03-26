@@ -1,7 +1,7 @@
+![language:Python](https://img.shields.io/badge/Language-Python-blue.svg?style=flat-square) ![license:MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square) ![release:2.0](https://img.shields.io/badge/Release-1.0-lightgrey.svg?style=flat-square)
+
 # backup-verifier
 This is a tool to identify differences between one or more copies of a backup stream. I use this tool audit my backups occasionally, to verify that they're all 100% in synch with no missing files, extra files, or modified files.
-
-![language:Python](https://img.shields.io/badge/Language-Python-blue.svg?style=flat-square) ![license:MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square) ![release:2.0](https://img.shields.io/badge/Release-1.0-lightgrey.svg?style=flat-square)
 
 * [Background](#background)
 * [Installation](#installation)
