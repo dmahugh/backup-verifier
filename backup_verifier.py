@@ -56,7 +56,7 @@ def backup_compare(backup, master, report_file):
 
     # scan through this backup and compare each file to master dictionary ...
     for row in csv.reader(open(datafile), delimiter=',', quotechar='"'):
-        fullpath = row[0] + '\\' + row[1]
+        fullpath = row[0].lower() + '\\' + row[1].lower()
         ts_size = row[2] + row[3]
         backup_dict[fullpath] = ts_size
         if fullpath in master:
@@ -125,6 +125,10 @@ def convert_to_csv(infile=None, outfile=None):
         if excluded_folder(current_folder):
             continue
 
+        # remove \backup-master from start of path ...
+        if current_folder.startswith(r'\backup-master'):
+            current_folder = current_folder[14:]
+
         datarow = add_quotes(current_folder) + ',' + add_quotes(filename) + \
             ',' + str(timestamp) + ',' + str(filesize)
 
@@ -174,7 +178,7 @@ def diff_report(datafiles=None):
     master_dict = {}
     for row in csv.reader(open(master_data, newline=''),\
         delimiter=',', quotechar='"'):
-        master_dict[row[0] + '\\' + row[1]] = row[2] + str(row[3])
+        master_dict[row[0].lower() + '\\' + row[1].lower()] = row[2] + str(row[3])
 
     masterfilesumm = os.path.splitext(datafiles[0])[0] + \
         ' -- MASTER COPY ({:,} files)'.format(len(master_dict))
@@ -308,7 +312,10 @@ if __name__ == '__main__':
 
     # generate a diference report for a set of .CSV or .DIR files passed as
     # command line arguments
-    diff_report(sys.argv[1:])
+    #diff_report(sys.argv[1:])
+
+    diff_report(['master.dir', 'drive2.dir', 'drive3.dir', 'drive4.dir'])
+    #diff_report(['master.csv', 'drive2.csv', 'drive3.csv', 'drive4.csv'])
 
     # this enables command-line usage for converting a .dir to .csv
     #if len(sys.argv) == 3:
