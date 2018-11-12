@@ -9,6 +9,7 @@ identifying discrepancies: the extra, missing, or modified files on each drive.
 import csv
 import datetime
 import os
+import subprocess
 import sys
 import time
 
@@ -154,7 +155,8 @@ def diff_report(datafiles=None):
     directory listing, in which case the same-named .csv file is created on the
     fly.
 
-    A full-detail log file is created, and a brief summary on the console.
+    A full-detail log file is created as a CSV file, and the filename is returned.
+    Also prints a brief summary to the console.
     """
     if not datafiles:
         # if no CSV files were specified, use our current defaults
@@ -163,7 +165,6 @@ def diff_report(datafiles=None):
     # open output report file
     report_filename = "backups-" + time.strftime("%Y-%m-%d-%H%M%S") + ".rpt"
     report_file = open(report_filename, "w")
-    display("log file: " + report_filename, report_file)
     display("  MASTER: " + datafiles[0], report_file, "f")
     display("  copies: " + str(datafiles[1:]), report_file, "f")
     display("-" * 80, report_file, "f")
@@ -198,6 +199,8 @@ def diff_report(datafiles=None):
         display("-" * 80, report_file, "f")
 
     report_file.close()
+
+    return report_filename
 
 
 def display(message, report_file, flags="cf"):
@@ -310,19 +313,48 @@ def ts_to_datetime(linetext):
     return datetime.datetime.strptime(windows_timestamp, "%m/%d/%Y %I:%M %p")
 
 
+def test_backup_verifier():
+    """Run tests
+    """
+
+    test_cases = [
+        ("testdata\\folder1", "folder1.dir"),
+        ("testdata\\folder2", "folder2.dir"),
+        ("testdata\\folder3", "folder3.dir"),
+    ]
+
+    # capture DIR listings to CSV files
+    for folder, filename in test_cases:
+        with open(filename, "w") as fhandle:
+            fhandle.write(subprocess.getoutput(f"dir {folder}"))
+
+    # generate diff report
+    output = diff_report([test_case[1] for test_case in test_cases])
+
+    # compare generated output to expected output
+    with open('testdata\\expected_output.txt') as fhandle:
+        expected = fhandle.read()
+    with open(output) as fhandle:
+        actual = fhandle.read()
+    print('TESTS PASSED' if actual == expected else "TESTS FAILED")
+
+
 if __name__ == "__main__":
 
     # switch console output to utf8 encoding, so that we don't crash on
-    # display of filenames with non-ASCII characters. Note that this should
-    # only be done ONCE - if it's done a second time, "ERRNO 9" errors
-    # occur on print() statements. (Why?)
+    # display of filenames with non-ASCII characters. (Need for this should go
+    # away with new CMD prompt updates coming in Windows 10.
     sys.stdout = open(sys.stdout.fileno(), mode="w", encoding="utf8", buffering=1)
+
+    # for now, default behavior is to run tests
+    test_backup_verifier()
 
     # generate a diference report for a set of .CSV or .DIR files passed as
     # command line arguments
     # diff_report(sys.argv[1:])
 
-    diff_report(["server.dir", "drive2.dir", "drive3.dir", "drive4.dir"])
+    # LIVE USAGE - for verifying our backup drives
+    # diff_report(["server.dir", "drive2.dir", "drive3.dir", "drive4.dir"])
     # diff_report(['server.csv', 'drive2.csv', 'drive3.csv', 'drive4.csv'])
 
     # this enables command-line usage for converting a .dir to .csv

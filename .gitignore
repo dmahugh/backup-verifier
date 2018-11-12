@@ -10,4 +10,4 @@ _todo.txt
 __pycache__/
 .vscode/
 archive/
-
+testdata/
