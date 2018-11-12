@@ -332,11 +332,11 @@ def test_backup_verifier():
     output = diff_report([test_case[1] for test_case in test_cases])
 
     # compare generated output to expected output
-    with open('testdata\\expected_output.txt') as fhandle:
+    with open("testdata\\expected_output.txt") as fhandle:
         expected = fhandle.read()
     with open(output) as fhandle:
         actual = fhandle.read()
-    print('TESTS PASSED' if actual == expected else "TESTS FAILED")
+    print("TESTS PASSED" if actual == expected else "TESTS FAILED")
 
 
 if __name__ == "__main__":
