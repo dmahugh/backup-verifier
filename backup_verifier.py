@@ -9,21 +9,16 @@ identifying discrepancies: the extra, missing, or modified files on each drive.
 import csv
 import datetime
 import os
+from pathlib import Path
 import subprocess
 import sys
 import time
 
 
-def add_quotes(fieldvalue):
-    """Add quotes to a string if it contains a comma.
-    """
-    return '"' + fieldvalue + '"' if "," in fieldvalue else fieldvalue
-
-
 def backup_compare(backup, master, report_file):
     """Compare a backup to a master copy, return the differences.
 
-    backup = data file of the backup copy; either a .csv with four columns
+    backup = name of the data file for a backup copy; either a .csv with four columns
              (folder/filename/timestamp/size) or a .dir capture of a Windows
              directory listing
     master = dictionary of the master, keys = filename, values = timestamp+size
@@ -34,14 +29,17 @@ def backup_compare(backup, master, report_file):
     nmissing = 0
     ndiffer = 0
     nextra = 0
-    display("analyzing " + os.path.splitext(backup)[0] + " ...", report_file, "cn")
-    display(">>> " + os.path.splitext(backup)[0].upper() + " <<<", report_file, "f")
+    # /// just pass a Path object?
+    backup_path = Path(backup)  # create Path object from passed string
+    display("analyzing " + backup_path.stem + " ...", report_file, "cn")
+    display(">>> " + backup_path.stem.upper() + " <<<", report_file, "f")
     backup_dict = {}  # dictionary of this backup, populated in loop below
 
-    if os.path.splitext(backup)[1].lower() == ".csv":
+    if backup_path.suffix.lower() == ".csv":
         datafile = backup
     else:
-        datafile = os.path.splitext(backup)[0] + ".csv"
+        # /// does open() take a Path() instead of string? Should we do that?
+        datafile = backup_path.stem + ".csv"
         display("parsing " + backup + " ...", report_file, "cn")
         convert_to_csv(infile=backup, outfile=datafile)
 
@@ -83,8 +81,9 @@ def convert_to_csv(infile=None, outfile=None):
     path = None
 
     # open file, write header row to output file
-    fhandle = open(outfile, "w")
-    fhandle.write("folder,filename,timestamp,bytes\n")
+    fhandle = open(outfile, "w", newline="")
+    csvwriter = csv.writer(fhandle, dialect="excel")
+    csvwriter.writerow(["folder", "filename", "timestamp", "bytes"])
 
     lines_written = 0
     current_folder = None
@@ -120,17 +119,8 @@ def convert_to_csv(infile=None, outfile=None):
         if current_folder.startswith(r"\backup-master"):
             current_folder = current_folder[14:]
 
-        datarow = (
-            add_quotes(current_folder)
-            + ","
-            + add_quotes(filename)
-            + ","
-            + str(timestamp)
-            + ","
-            + str(filesize)
-        )
+        csvwriter.writerow([current_folder, filename, str(timestamp), str(filesize)])
 
-        fhandle.write(datarow + "\n")
         lines_written += 1
         if lines_written % 10000 == 0:
             display(
@@ -142,7 +132,7 @@ def convert_to_csv(infile=None, outfile=None):
                 "cn",
             )
 
-    fhandle.close()  # /// AFTER THIS, PRINT is BROKEN - ERRNO 9
+    fhandle.close()
     display("{} lines written to ".format(lines_written) + outfile, None, "cn")
 
 
@@ -342,11 +332,10 @@ def test_backup_verifier():
 if __name__ == "__main__":
 
     # switch console output to utf8 encoding, so that we don't crash on
-    # display of filenames with non-ASCII characters. (Need for this should go
-    # away with new CMD prompt updates coming in Windows 10.
+    # display of filenames with non-ASCII characters. (The need for this should go
+    # away with new CMD prompt updates coming in Windows 10.)
     sys.stdout = open(sys.stdout.fileno(), mode="w", encoding="utf8", buffering=1)
 
-    # for now, default behavior is to run tests
     test_backup_verifier()
 
     # generate a diference report for a set of .CSV or .DIR files passed as
