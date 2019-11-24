@@ -231,6 +231,11 @@ def excluded_folder(folder=None):
         return True
     if "\\$RECYCLE.BIN\\" in folder:
         return True
+    if folder.lower().startswith("\\system volume information"):
+        # This folder is always present on USB drives, but NTFS hides it and
+        # other file systems may show it, which can make it appear to be a 
+        # "difference" between two drives with identical content.
+        return True
 
     return False
 
@@ -248,9 +253,9 @@ def files_differ(file1, file2):
 
     NOTE: we now only check the minutes and seconds of the timestamp as well as
     the file size, because we've found that if each file's DIR listing was done
-    during a Daylight Savings Time setting, they'll have different hours, which
-    can roll over into different days, months, or years, even though the files
-    are in fact identical.
+    during a different Daylight Savings Time setting, they'll have different
+    hours, which can roll over into different days, months, or years, even
+    though the files are in fact identical.
 
     NOTE #2, which overrides the above note: fuck it, we now only verify the
     size and entirely ignore the timestamp. It seems that Windows at some point
@@ -373,7 +378,7 @@ if __name__ == "__main__":
     # diff_report(sys.argv[1:])
 
     # LIVE USAGE - for verifying our backup drives
-    diff_report(["drive5-2019-11-23.csv", "archive/drive1-2019-06-08.csv", "archive/drive2-2019-06-08.csv", "archive/drive3-2019-06-08.csv", "archive/drive4-2019-06-08.csv"])
+    diff_report(["drive5-2019-11-24.dir", "archive/drive1-2019-06-08.csv", "archive/drive2-2019-06-08.csv", "archive/drive3-2019-06-08.csv", "archive/drive4-2019-06-08.csv"])
     #diff_report(["drive1.dir", "drive2.dir", "drive3.dir", "drive4.dir"])
     # diff_report(['server.csv', 'drive2.csv', 'drive3.csv', 'drive4.csv'])
 
