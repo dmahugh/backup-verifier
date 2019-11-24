@@ -8,7 +8,6 @@ identifying discrepancies: the extra, missing, or modified files on each drive.
 """
 import csv
 import datetime
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -49,7 +48,7 @@ def backup_compare(backup, master, report_file):
         ts_size = row[2] + row[3]
         backup_dict[fullpath] = ts_size
         if fullpath in master:
-            if master[fullpath] != ts_size:
+            if files_differ(master[fullpath], ts_size):
                 display("modified: " + fullpath, report_file, "f")
                 ndiffer += 1
         else:
@@ -159,23 +158,23 @@ def diff_report(datafiles=None):
     display("  copies: " + str(datafiles[1:]), report_file, "f")
     display("-" * 80, report_file, "f")
 
+    master_path = Path(datafiles[0])
+    if master_path.suffix.lower() == '.csv':
+        master_data = str(master_path)
+    else:
+        display("parsing " + datafiles[0] + " ...", None, "cn")
+        master_data = str(master_path.with_suffix('.csv'))
+        convert_to_csv(str(master_path), master_data)
+
     # master_dict = a dictionary created from the master backup (first file)
     #    key = folder + r'\' + filename
     #    value = timestamp + filesize
-    if os.path.splitext(datafiles[0])[1].lower() == ".csv":
-        master_data = datafiles[0]
-    else:
-        display("parsing " + datafiles[0] + " ...", None, "cn")
-        master_data = os.path.splitext(datafiles[0])[0] + ".csv"
-        convert_to_csv(datafiles[0], master_data)
     display("creating dictionary from MASTER COPY ...", report_file, "cn")
     master_dict = {}
     for row in csv.reader(open(master_data, newline=""), delimiter=",", quotechar='"'):
         master_dict[row[0].lower() + "\\" + row[1].lower()] = row[2] + str(row[3])
 
-    masterfilesumm = os.path.splitext(datafiles[0])[
-        0
-    ] + " -- MASTER COPY ({:,} files)".format(len(master_dict))
+    masterfilesumm = str(master_path.with_suffix('')) + " -- MASTER COPY ({:,} files)".format(len(master_dict))
     display(masterfilesumm, report_file)
     display("-" * 80, report_file, "f")
 
@@ -198,9 +197,10 @@ def display(message, report_file, flags="cf"):
 
     message = the text message
     report_file = file handle of open report file
-    flags = contains 'c' for console output and/or 'f' for file output;
-            default is 'cf'; may also contain 'n' to suppress newline on
-            console output
+    flags = contains 'c' for console output
+            contains 'n' to suppress newline on console output
+            contains 'f' for file output
+            default is 'cf'
     """
     flags = flags.lower() if flags else "cf"
     if len(message) < 80:
@@ -233,6 +233,34 @@ def excluded_folder(folder=None):
         return True
 
     return False
+
+
+def files_differ(file1, file2):
+    """Determine whether two files (which are expected to be identical copies
+    of the same file on different drives) have differences in ther timestamps
+    or sizes.
+
+    Inputs: file1 and file2 are strings that encode a file's timestamp and size
+    as captured in DIR listings, in this format (where NNNNNNNNN is the file
+    size): "YYYY-MM-DD HH:MM:SSNNNNNNNNN"
+
+    Output: returns True if the files differ, False if they have same timestamp/size.
+
+    NOTE: we now only check the minutes and seconds of the timestamp as well as
+    the file size, because we've found that if each file's DIR listing was done
+    during a Daylight Savings Time setting, they'll have different hours, which
+    can roll over into different days, months, or years, even though the files
+    are in fact identical.
+
+    NOTE #2, which overrides the above note: fuck it, we now only verify the
+    size and entirely ignore the timestamp. It seems that Windows at some point
+    changed how it rounds off seconds in a DIR listing so that you can have a
+    meaningless 1-minute difference in the timestamp depending on which version
+    of Windows did the DIR listing - for example, 04:53:59 used to print in a
+    DIR listing as 04:53 but now it prints as 04:54, and honestly WHO HAS TIME
+    FOR THIS SHIT?
+    """
+    return file1[19:] != file2[19:]
 
 
 def parseline(linetext=None):
@@ -273,6 +301,8 @@ def summary_msg(backup, master, nmissing, ndiffer, nextra):
 
     Returns a string that describes/summarizes the results of the comparison.
     """
+    backup_path = Path(backup)
+
     clauses = []
     if nmissing > 0:
         clauses.append(
@@ -285,10 +315,10 @@ def summary_msg(backup, master, nmissing, ndiffer, nextra):
 
     if nmissing == 0 and ndiffer == 0 and nextra == 0:
         return (
-            os.path.splitext(backup)[0] + " -- clean backup, all files match " + master
+            str(backup_path.with_suffix('')) + " -- clean backup, all files match " + master
         )
 
-    return os.path.splitext(backup)[0] + " -- " + ", ".join(clauses)
+    return str(backup_path.with_suffix('')) + " -- " + ", ".join(clauses)
 
 
 def ts_to_datetime(linetext):
@@ -336,14 +366,15 @@ if __name__ == "__main__":
     # away with new CMD prompt updates coming in Windows 10.)
     sys.stdout = open(sys.stdout.fileno(), mode="w", encoding="utf8", buffering=1)
 
-    test_backup_verifier()
+    #test_backup_verifier()
 
     # generate a diference report for a set of .CSV or .DIR files passed as
     # command line arguments
     # diff_report(sys.argv[1:])
 
     # LIVE USAGE - for verifying our backup drives
-    # diff_report(["server.dir", "drive2.dir", "drive3.dir", "drive4.dir"])
+    diff_report(["drive5-2019-11-23.csv", "archive/drive1-2019-06-08.csv", "archive/drive2-2019-06-08.csv", "archive/drive3-2019-06-08.csv", "archive/drive4-2019-06-08.csv"])
+    #diff_report(["drive1.dir", "drive2.dir", "drive3.dir", "drive4.dir"])
     # diff_report(['server.csv', 'drive2.csv', 'drive3.csv', 'drive4.csv'])
 
     # this enables command-line usage for converting a .dir to .csv
