@@ -52,17 +52,35 @@ def backup_compare(backup, master, report_file):
                 display("modified: " + fullpath, report_file, "f")
                 ndiffer += 1
         else:
-            display("extra: " + fullpath, report_file, "f")
-            nextra += 1
+            if tracked_file(fullpath):
+                display("extra: " + fullpath, report_file, "f")
+                nextra += 1
 
     # scan through master_dict to identify any files missing from the backup ...
     for fullpath in master:
-        if fullpath not in backup_dict:
+        if tracked_file(fullpath) and fullpath not in backup_dict:
             display("missing: " + fullpath, report_file, "f")
             nmissing += 1
 
     return (nmissing, ndiffer, nextra)
 
+
+def tracked_file(fullpath):
+    """Returns True if the specified path/file is one we're tracking and
+    verifying. This function is used to enforce rules about files and folders
+    that we don't bother to verify, such as dynamically generated temp files.
+    """
+    filename = fullpath.split("\\")[-1]
+    if filename.lower() == "thumbs.db":
+        # We ignore discrepancies in the presence of a thumbs.db file,
+        # because that file is created by Windows when viewing a folder
+        # in File Explorer. It is automatically re-created if missing.
+        return False
+    if r"\__macosx" in fullpath.lower():
+        # These folders may be dynamically created on a Mac and thereby show
+        # up as false-positive discrepancies. We never care about them.
+        return False
+    return True
 
 def convert_to_csv(infile=None, outfile=None):
     """Parse a text file containing a Windows directory listing and write the
@@ -378,7 +396,12 @@ if __name__ == "__main__":
     # diff_report(sys.argv[1:])
 
     # LIVE USAGE - for verifying our backup drives
-    diff_report(["drive5-2019-11-24.dir", "archive/drive1-2019-06-08.csv", "archive/drive2-2019-06-08.csv", "archive/drive3-2019-06-08.csv", "archive/drive4-2019-06-08.csv"])
+    diff_report(["nas.dir",
+                 "drive1.dir",
+                 "drive2.dir",
+                 "drive3.dir",
+                 "drive4.dir",
+                 "drive5.dir"])
     #diff_report(["drive1.dir", "drive2.dir", "drive3.dir", "drive4.dir"])
     # diff_report(['server.csv', 'drive2.csv', 'drive3.csv', 'drive4.csv'])
 

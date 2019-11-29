@@ -1,10 +1,12 @@
 # don't include these files
+.gitignore
 _pyfind
 _todo.txt
 *.json
 *.dir
 *.csv
 *.rpt
+photo_stats.py
 
 # don't include these subfolders
 __pycache__/
